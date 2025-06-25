@@ -1,0 +1,10 @@
+# Ignore environment variables
+.env
+.env.local
+*.env
+
+# Node.js
+node_modules/
+
+# Python
+__pycache__/
