@@ -1,38 +1,38 @@
+require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-require('dotenv').config();
+const { ApolloServer } = require('@apollo/server');
+const { expressMiddleware } = require('@apollo/server/express4');
+const { json } = require('body-parser');
 
-const clientRoutes = require('./routes/clients');
-const serviceRoutes = require('./routes/services');
-const invoiceRoutes = require('./routes/invoices'); // ✅ NEW: Import invoice routes
+// GraphQL schema
+const typeDefs = require('./schema/typeDefs');
+const resolvers = require('./schema/resolvers');
 
 const app = express();
-
-// Middleware
 app.use(cors());
-app.use(express.json());
+app.use(json());
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGO_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
-})
-.then(() => {
-  console.log('✅ MongoDB connected');
-})
-.catch((err) => {
-  console.error('❌ MongoDB connection error:', err.message);
-  process.exit(1); // Exit if DB fails
-});
+}).then(() => console.log('✅ MongoDB connected'))
+  .catch((err) => console.error('❌ MongoDB connection error:', err));
 
-// Routes
-app.use('/api/clients', clientRoutes);
-app.use('/api/services', serviceRoutes);
-app.use('/api/invoices', invoiceRoutes); // ✅ NEW: Mount invoice API
+// Start Apollo GraphQL Server
+const server = new ApolloServer({ typeDefs, resolvers });
 
-// Start server
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`🚀 Server running at http://localhost:${PORT}`);
-});
+async function startServer() {
+  await server.start();
+  app.use('/graphql', expressMiddleware(server));
+
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running at http://localhost:${PORT}`);
+    console.log(`📡 GraphQL ready at http://localhost:${PORT}/graphql`);
+  });
+}
+
+startServer();
